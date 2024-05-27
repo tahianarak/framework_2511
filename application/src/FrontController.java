@@ -1,5 +1,7 @@
 package mg.ituprom16;
 
+import mg.ituprom16.util.*;
+import mg.ituprom16.mapping.*;
 import java.util.*;
 import java.text.*;
 import java.util.*;
@@ -16,47 +18,56 @@ import jakarta.servlet.http.HttpServletRequest;
 public class FrontController extends HttpServlet
 {   
     private String packageSource;
-    Vector<Class> lsController;
+    Map<String, Mapping> urlDispo;
 
-    public void init() throws ServletException {
+    public  void init() throws ServletException {
         try{
             this.packageSource = this.getInitParameter("package-source");
-             getControllers();
+             getMapping();
         }
         catch(Exception e){
             e.printStackTrace();
         }     
     }
-    private void  getControllers()throws Exception
+    private void  getMapping() throws Exception
     {
         ServletContext context = getServletContext();
         String classpath = context.getResource(this.packageSource).getPath();
         classpath = classpath.replace("%20", " ");
         classpath = classpath.substring(1);
-        File classpathDirectory = new File(classpath);
-        lsController=new Vector<Class>();
-        for (File file : classpathDirectory.listFiles()) {
-            if (file.isFile() && file.getName().endsWith(".class"))
-            {
-                String className = file.getName().substring(0, file.getName().length() - 6);
-                Class clazz = Thread.currentThread().getContextClassLoader().loadClass(this.packageSource.split("classes/")[1].replace("/", ".")+"."+className);
-                if(clazz.isAnnotationPresent(Controller.class))
-                {
-                    lsController.add(clazz);
-                }
-            }
-        }
+        this.urlDispo=ControllerUtil.getUrlDispo(classpath,this.packageSource);
     }      
-
+    private String restitute(String cheminRessource){
+        String str=cheminRessource.split("http://localhost:8080/")[1];
+        String[] temp=str.split("/");
+       String  ans="";
+        for(int i=1;i<temp.length;i++){
+            ans=ans+"/"+temp[i];
+        }
+        return ans;
+    }
    private void processing(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException,Exception
    {
         response.setContentType("text/plain");
         ServletOutputStream out = response.getOutputStream();
-        String toPrint="";
-        for(int i=0;i<lsController.size();i++){
-            toPrint=toPrint+lsController.elementAt(i).getName()+"\n";
+        String toPrint=null;
+        String cheminRessource = request.getRequestURL().toString();
+        cheminRessource=restitute(cheminRessource);
+         out.write((cheminRessource +"\n").getBytes());
+        for(int i=0;i<this.urlDispo.size();i++){
+            if(urlDispo.get(cheminRessource)!=null){
+                Mapping real=urlDispo.get(cheminRessource);
+                toPrint="cette url est associe à la classe :"+real.getClassName()+" avec la methode: "+real.getMethodName();
+                break;
+            }
         }
-        out.write((toPrint).getBytes());
+        if(toPrint==null){
+             out.write(("cette url n'est pas disponible").getBytes());
+        }
+        else{
+           out.write(toPrint.getBytes());
+        }
+       
 
         out.close();
     }
