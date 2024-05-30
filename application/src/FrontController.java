@@ -50,15 +50,18 @@ public class FrontController extends HttpServlet
    {
         response.setContentType("text/plain");
         ServletOutputStream out = response.getOutputStream();
-        String toPrint=null;
         String cheminRessource = request.getRequestURL().toString();
         cheminRessource=restitute(cheminRessource);
-         out.write((cheminRessource +"\n").getBytes());
+        out.write((cheminRessource +"\n").getBytes());
+        String toPrint=null;
+
         for(int i=0;i<this.urlDispo.size();i++){
             if(urlDispo.get(cheminRessource)!=null){
                 Mapping real=urlDispo.get(cheminRessource);
-                toPrint="cette url est associe à la classe :"+real.getClassName()+" avec la methode: "+real.getMethodName();
-                break;
+                Class classToUse=Class.forName(real.getClassName());
+                Method methodToUse=classToUse.getDeclaredMethod(real.getMethodName(),new Class[0]);
+                Object temp=classToUse.getDeclaredConstructor(new Class[0]).newInstance(new Object[0]);
+                toPrint=(String)methodToUse.invoke(temp,new Object[0]);
             }
         }
         if(toPrint==null){
