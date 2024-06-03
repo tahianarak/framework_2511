@@ -12,6 +12,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import mg.ituprom16.affloader.*;
 
 
 
@@ -49,30 +50,32 @@ public class FrontController extends HttpServlet
    private void processing(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException,Exception
    {
         response.setContentType("text/plain");
-        ServletOutputStream out = response.getOutputStream();
         String cheminRessource = request.getRequestURL().toString();
         cheminRessource=restitute(cheminRessource);
-        out.write((cheminRessource +"\n").getBytes());
         String toPrint=null;
-
-        for(int i=0;i<this.urlDispo.size();i++){
-            if(urlDispo.get(cheminRessource)!=null){
-                Mapping real=urlDispo.get(cheminRessource);
-                Class classToUse=Class.forName(real.getClassName());
-                Method methodToUse=classToUse.getDeclaredMethod(real.getMethodName(),new Class[0]);
-                Object temp=classToUse.getDeclaredConstructor(new Class[0]).newInstance(new Object[0]);
-                toPrint=(String)methodToUse.invoke(temp,new Object[0]);
-            }
+        Object ans=ControllerUtil.invokeMethod(urlDispo,cheminRessource);
+        if(ans instanceof String) {toPrint=(String)ans;}
+        else if(ans instanceof ModelView){
+            ModelView mv=(ModelView)ans;
+            RequestDispatcher dispat = request.getRequestDispatcher(mv.getUrlDestination());
+            Map<String,Object> data =mv.getData();
+            Set<String> keys = data.keySet();
+            for (String key : keys) {
+                request.setAttribute(key,data.get(key));
+            }	
+            dispat.forward(request,response);
         }
+        ServletOutputStream out = response.getOutputStream();
         if(toPrint==null){
              out.write(("cette url n'est pas disponible").getBytes());
         }
         else{
            out.write(toPrint.getBytes());
+            out.close();
         }
        
 
-        out.close();
+       
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response)throws ServletException, IOException{
