@@ -5,4 +5,8 @@
     .specifier la source de package des controllers dans votre xml dans le servelet FrontController
     .la source package est un parametre de init-param avec le nom "package-source" 
     .chaque methode doit etre annotee avec Get avec pour valeur l'url associe
-    .le type de retour de la methode doit etre un String 
+    .le type de retour de la methode doit etre un String ou un ModelView
+    .ModelView se trouve dans le paquet mg.ituprom16.affloader
+    .pour en construire un il faut appeler son constructeur avec l'url associe a la package
+    .pour envoyer des donnees, il faut utiliser la methode addObject(String,Object)
+    

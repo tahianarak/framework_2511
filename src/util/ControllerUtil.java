@@ -8,7 +8,19 @@ import mg.ituprom16.annotation.*;
 
 public class ControllerUtil{
 
-
+    public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource)throws Exception{
+            
+           for(int i=0;i<urlDispo.size();i++){
+                if(urlDispo.get(cheminRessource)!=null){
+                    Mapping real=urlDispo.get(cheminRessource);
+                    Class classToUse=Class.forName(real.getClassName());
+                    Method methodToUse=classToUse.getDeclaredMethod(real.getMethodName(),new Class[0]);
+                    Object temp=classToUse.getDeclaredConstructor(new Class[0]).newInstance(new Object[0]);
+                    return methodToUse.invoke(temp,new Object[0]);
+                }
+            }
+            return null;
+    }
     public static  Map<String, Mapping> getUrlDispo(String classpath,String packageSource)throws Exception
     {
         Vector<Class> lsController=ControllerUtil.getControllers(classpath,packageSource);

@@ -1,6 +1,9 @@
-javac -d bin/  src/*.java
+MD tempjava;
+FOR /R "src" %%a IN (*.java) DO copy "%%a" "tempjava"
+cd tempjava
+javac -d ../bin *.java
  
-cd bin 
+cd ../bin 
 
 jar cvf myspring.jar mg
 jar cvf ..\..\web\lib\myspring.jar mg
