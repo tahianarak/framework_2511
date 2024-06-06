@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import mg.ituprom16.affloader.*;
+import mg.ituprom16.exception.*;
 
 
 
@@ -33,10 +34,19 @@ public class FrontController extends HttpServlet
     private void  getMapping() throws Exception
     {
         ServletContext context = getServletContext();
-        String classpath = context.getResource(this.packageSource).getPath();
-        classpath = classpath.replace("%20", " ");
-        classpath = classpath.substring(1);
-        this.urlDispo=ControllerUtil.getUrlDispo(classpath,this.packageSource);
+        try{
+            String classpath = context.getResource(this.packageSource).getPath();
+            classpath = classpath.replace("%20", " ");
+            classpath = classpath.substring(1);
+            this.urlDispo=ControllerUtil.getUrlDispo(classpath,this.packageSource);
+        }
+        catch(Exception e){
+                if(e instanceof DuplicatedUrlException || e instanceof NoControllerDetectedException){
+                    throw e;
+                }
+                throw new Exception("Le package source spécifée n'existe pas ");
+                      
+        } 
     }      
     private String restitute(String cheminRessource){
         String str=cheminRessource.split("http://localhost:8080/")[1];
@@ -49,7 +59,7 @@ public class FrontController extends HttpServlet
     }
    private void processing(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException,Exception
    {
-        response.setContentType("text/plain");
+        response.setContentType("text/html");
         String cheminRessource = request.getRequestURL().toString();
         cheminRessource=restitute(cheminRessource);
         String toPrint=null;
@@ -65,17 +75,17 @@ public class FrontController extends HttpServlet
             }	
             dispat.forward(request,response);
         }
-        ServletOutputStream out = response.getOutputStream();
-        if(toPrint==null){
-             out.write(("cette url n'est pas disponible").getBytes());
+         ServletOutputStream out = response.getOutputStream();
+        if(ans ==null){
+             out.write(("<h1>Erreur 404 ,cet url n'est pas disponible</h1>").getBytes());
+        }
+        else if(ControllerUtil.verifyType(ans)==1){
+             out.write(("<h1>Type de retour de la fonction associé à l'url non valide </h1>").getBytes());
         }
         else{
-           out.write(toPrint.getBytes());
-            out.close();
+           out.write(toPrint.getBytes());  
         }
-       
-
-       
+        out.close();   
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response)throws ServletException, IOException{
