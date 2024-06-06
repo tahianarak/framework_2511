@@ -5,9 +5,22 @@ import java.io.*;
 import java.lang.reflect.*;
 import mg.ituprom16.mapping.*;
 import mg.ituprom16.annotation.*;
+import mg.ituprom16.affloader.*;
+import mg.ituprom16.exception.*;
 
 public class ControllerUtil{
 
+    public static int verifyType(Object o){
+        if(o instanceof ModelView){
+            return 0;
+        }
+        else if(o instanceof String){
+            return 0;
+        }
+        else{
+            return 1;
+        }
+    }
     public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource)throws Exception{
             
            for(int i=0;i<urlDispo.size();i++){
@@ -30,7 +43,14 @@ public class ControllerUtil{
             for(int j=0;j<metTemp.length;j++){
                 if(metTemp[j].isAnnotationPresent(Get.class)){
                     Get annotation = metTemp[j].getAnnotation(Get.class);
-                    urlDispo.put(annotation.valeur(),new Mapping(lsController.elementAt(i).getName(),metTemp[j].getName()));
+                    if(urlDispo.containsKey(annotation.valeur())){
+                        throw new DuplicatedUrlException("plusieurs url de meme valeur pour: "+annotation.valeur());
+                    }
+                    else
+                    {
+                        urlDispo.put(annotation.valeur(),new Mapping(lsController.elementAt(i).getName(),metTemp[j].getName()));
+                    }
+                    
                 }
             }
         }
@@ -39,6 +59,9 @@ public class ControllerUtil{
     public static Vector<Class> getControllers(String classpath,String packageSource)throws Exception
     {
         File classpathDirectory = new File(classpath);
+        if (!classpathDirectory.exists()) {
+             throw new Exception("ce package n'existe pas");
+        }
         Vector<Class> lsController=new Vector<Class>();
         for (File file : classpathDirectory.listFiles()) {
             if (file.isFile() && file.getName().endsWith(".class"))
@@ -50,6 +73,9 @@ public class ControllerUtil{
                     lsController.add(clazz);
                 }
             }
+        }
+        if(lsController.size()==0){
+             throw new NoControllerDetectedException("ce package ne contient aucun controller");
         }
         return lsController;
     }
