@@ -42,12 +42,14 @@ public class FrontController extends HttpServlet
         }
         catch(Exception e){
                 if(e instanceof DuplicatedUrlException || e instanceof NoControllerDetectedException){
-                    throw e;
+                    e.printStackTrace();
                 }
-                throw new Exception("Le package source spécifée n'existe pas ");
-                      
+                else{
+                    (new ServletException("Le package source spécifée n'existe pas ")).printStackTrace();  
+                }
+                                
         } 
-    }      
+    }     
     private String restitute(String cheminRessource){
         String str=cheminRessource.split("http://localhost:8080/")[1];
         String[] temp=str.split("/");
@@ -62,30 +64,41 @@ public class FrontController extends HttpServlet
         response.setContentType("text/html");
         String cheminRessource = request.getRequestURL().toString();
         cheminRessource=restitute(cheminRessource);
-        String toPrint=null;
-        Object ans=ControllerUtil.invokeMethod(urlDispo,cheminRessource);
-        if(ans instanceof String) {toPrint=(String)ans;}
-        else if(ans instanceof ModelView){
-            ModelView mv=(ModelView)ans;
-            RequestDispatcher dispat = request.getRequestDispatcher(mv.getUrlDestination());
-            Map<String,Object> data =mv.getData();
-            Set<String> keys = data.keySet();
-            for (String key : keys) {
-                request.setAttribute(key,data.get(key));
-            }	
-            dispat.forward(request,response);
+        try{
+            Map<String,String[]> paramsbrut= request.getParameterMap();
+            Map<String,String> params=new HashMap<String,String>();
+            Set<String> cles = paramsbrut.keySet();
+            for (String key : cles){
+                params.put(key,paramsbrut.get(key)[0]);
+            }
+            Object ans=ControllerUtil.invokeMethod(urlDispo,cheminRessource,params);
+            if(ans instanceof String) {
+                ServletOutputStream out = response.getOutputStream();
+                out.write(((String)ans).getBytes());
+                out.close();  
+            }
+            else if(ans instanceof ModelView){
+                ModelView mv=(ModelView)ans;
+                RequestDispatcher dispat = request.getRequestDispatcher(mv.getUrlDestination());
+                Map<String,Object> data =mv.getData();
+                Set<String> keys = data.keySet();
+                for (String key : keys)
+                {
+                    request.setAttribute(key,data.get(key));
+                }	
+                dispat.forward(request,response);
+            }
         }
-         ServletOutputStream out = response.getOutputStream();
-        if(ans ==null){
-             out.write(("<h1>Erreur 404 ,cet url n'est pas disponible</h1>").getBytes());
-        }
-        else if(ControllerUtil.verifyType(ans)==1){
-             out.write(("<h1>Type de retour de la fonction associé à l'url non valide </h1>").getBytes());
-        }
-        else{
-           out.write(toPrint.getBytes());  
-        }
-        out.close();   
+        catch(Exception e){
+            ServletOutputStream out = response.getOutputStream();
+            if(e instanceof PageNotFoundException || e instanceof InvalidTypeException){
+                out.write((e.getMessage()).getBytes());
+                out.close();  
+            }
+            else{
+                throw e;
+            }
+        }  
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response)throws ServletException, IOException{
