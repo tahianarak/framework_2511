@@ -9,4 +9,7 @@
     .ModelView se trouve dans le paquet mg.ituprom16.affloader
     .pour en construire un il faut appeler son constructeur avec l'url associe a la package
     .pour envoyer des donnees, il faut utiliser la methode addObject(String,Object)
+    .Pour envoyer des donnees vers un controller il faut:
+        -Soit faire correspondre les inputs avec le nom des parametres de la fonction (les classes doivent etre compiler avec l'option parameters)
+        -Soit utiliser l'annnotation Match pour specifier l input qui lui correspond
     
