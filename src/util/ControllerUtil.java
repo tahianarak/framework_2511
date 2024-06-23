@@ -8,6 +8,7 @@ import mg.ituprom16.annotation.*;
 import mg.ituprom16.affloader.*;
 import mg.ituprom16.exception.*;
 import jakarta.servlet.*;
+import java.text.SimpleDateFormat;
 
 public class ControllerUtil{
 
@@ -22,39 +23,265 @@ public class ControllerUtil{
             return 1;
         }
     }
-    public static Vector<String> getKeys(Map<String, String> parameters)throws Exception{
-        Set<String> keys = parameters.keySet();
+
+    public static Object[] getObjectToUseAsParameter(Method method,Map<String,String> inputs)throws Exception{
+        Parameter[] methodParams=method.getParameters();
+        Map<String,Vector<String>> inputsPerObjects=ControllerUtil.triParObject(inputs);
+        Object[] objectToUseAsParameter=new Object[methodParams.length];
+        int count=0;
+        for(int k=0;k<methodParams.length;k++){
+            if(methodParams[k].isAnnotationPresent(Match.class)){
+                 Match annotation=methodParams[k].getAnnotation(Match.class);
+                if(inputsPerObjects.get(annotation.param()).elementAt(0).equals("simple")==false){
+                    Vector<String> listeAttributsClasse=inputsPerObjects.get(annotation.param());
+                    objectToUseAsParameter[count]=ControllerUtil.buildObjectFromForAnnoted(methodParams[k],listeAttributsClasse,inputs);
+                    count++;
+                }
+                else{
+                    String value=inputs.get(methodParams[k].getAnnotation(Match.class).param());
+                    if(methodParams[k].getType().getSimpleName().equals("int"))
+                    {
+                        objectToUseAsParameter[count]=Integer.valueOf(value).intValue();
+                    }
+                    else if(methodParams[k].getType().getSimpleName().equals("double"))
+                    {
+                        objectToUseAsParameter[count]=Double.valueOf(value).doubleValue();
+                    }
+                    else if(methodParams[k].getType().getSimpleName().equals("String"))
+                    {
+                        objectToUseAsParameter[count]=value;
+                    }
+                    else if(methodParams[k].getType().getSimpleName().equals("Date"))
+                    {
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                        objectToUseAsParameter[count]=dateFormat.parse(value);
+                    }
+                    count++;
+                    
+                }
+            }
+            else if(inputsPerObjects.containsKey(methodParams[k].getName()))
+            {
+                if(inputsPerObjects.get(methodParams[k].getName()).elementAt(0).equals("simple")==false){
+                    Vector<String> listeAttributsClasse=inputsPerObjects.get(methodParams[k].getName());
+                    objectToUseAsParameter[count]=buildObjectByName(methodParams[k],methodParams[k].getName(),listeAttributsClasse,inputs);
+                    count++;
+                }
+                else{
+                    String value=inputs.get(methodParams[k].getName());
+                    if(methodParams[k].getType().getSimpleName().equals("int"))
+                    {
+                        objectToUseAsParameter[count]=Integer.valueOf(value).intValue();
+                    }
+                    else if(methodParams[k].getType().getSimpleName().equals("double"))
+                    {
+                        objectToUseAsParameter[count]=Double.valueOf(value).doubleValue();
+                    }
+                    else if(methodParams[k].getType().getSimpleName().equals("String"))
+                    {
+                        objectToUseAsParameter[count]=value;
+                    }
+                    else if(methodParams[k].getType().getSimpleName().equals("Date"))
+                    {
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                        objectToUseAsParameter[count]=dateFormat.parse(value);
+                    }
+                    count++;
+                }
+            }
+        }
+        return objectToUseAsParameter;
+    }
+    public static Object buildObjectByName(Parameter param,String paramName,Vector<String> inputsPerObjects,Map<String,String> inputs)throws Exception{
+        Class type=param.getType();
+        Constructor builder =type.getConstructor(new Class[0]);
+        Object built=builder.newInstance(new Object[0]);
+        for(int i=0;i<inputsPerObjects.size();i++){
+            Field attribut=type.getDeclaredField(ControllerUtil.getFieldName(type,inputsPerObjects.elementAt(i)));
+            if(attribut.isAccessible())
+            {
+                String tempValue=inputs.get(paramName+":"+inputsPerObjects.elementAt(i));
+                ControllerUtil.setter(type,attribut,tempValue,built);
+            }
+            else{
+                attribut.setAccessible(true);
+                String tempValue=inputs.get(paramName+":"+inputsPerObjects.elementAt(i));
+                ControllerUtil.setter(type,attribut,tempValue,built);
+                attribut.setAccessible(false);
+            } 
+        }
+        return built;
+    }
+
+    public static String getFieldName(Class type,String supposedName){
+        Field[] lsField=type.getDeclaredFields();
+        for(int i=0;i<lsField.length;i++){
+            if(lsField[i].isAccessible()){
+                if(lsField[i].isAnnotationPresent(FieldMatcher.class)){ 
+                    FieldMatcher annotation =lsField[i].getAnnotation(FieldMatcher.class);
+                    if(annotation.name().equals(supposedName))
+                    {   
+                        return lsField[i].getName();
+                    }
+                }   
+            }
+            else{
+                lsField[i].setAccessible(true);
+                if(lsField[i].isAnnotationPresent(FieldMatcher.class)){ 
+                    FieldMatcher annotation =lsField[i].getAnnotation(FieldMatcher.class);
+                    if(annotation.name().equals(supposedName))
+                    {   
+                        return lsField[i].getName();
+                    }
+                } 
+                lsField[i].setAccessible(false);
+            }
+           
+        }
+        return supposedName;
+    } 
+    public static Object buildObjectFromForAnnoted(Parameter param,Vector<String> inputsPerObjects,Map<String,String> inputs)throws Exception{
+        Class type=param.getType();
+        Constructor builder =type.getConstructor(new Class[0]);
+        Object built=builder.newInstance(new Object[0]);
+        for(int i=0;i<inputsPerObjects.size();i++){
+            Field attribut=type.getDeclaredField(ControllerUtil.getFieldName(type,inputsPerObjects.elementAt(i)));
+            if(attribut.isAccessible())
+            {
+                String tempValue=inputs.get(param.getAnnotation(Match.class).param()+":"+inputsPerObjects.elementAt(i));
+                ControllerUtil.setter(type,attribut,tempValue,built);
+            }
+            else{
+                attribut.setAccessible(true);
+                String tempValue=inputs.get(param.getAnnotation(Match.class).param()+":"+inputsPerObjects.elementAt(i));
+                ControllerUtil.setter(type,attribut,tempValue,built);
+                attribut.setAccessible(false);
+            } 
+        }
+        return built;
+    }
+    public static Vector<Method> getDeclaredMethodsByName(Class type,String methodsName){
+        Vector<Method> lsAns=new Vector<Method>();
+        Method[] lsMethod=type.getDeclaredMethods();
+        for(int i=0;i<lsMethod.length;i++){
+            if(lsMethod[i].getName().equals(methodsName))   
+            lsAns.add(lsMethod[i]); 
+        }
+        return lsAns;
+    }
+    public static void setter(Class type,Field attribut,String value,Object built)throws Exception{
+        Class[] parameterTypes=new Class[1];
+        parameterTypes[0]=attribut.getType();
+        try{
+            if(attribut.getType().getSimpleName().equals("Date")){
+                Object[] lsParams=new Object[1];
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                lsParams[0]=dateFormat.parse(value);
+                Method toUse=type.getDeclaredMethod("set"+Capitalizer.capitalizeFirst(attribut.getName()),parameterTypes);
+                toUse.invoke(built,lsParams);
+                    return;
+            }
+            if(attribut.getType().getSimpleName().equals("String")){
+                Object[] lsParams=new Object[1];
+                lsParams[0]=value;
+                Method toUse=type.getDeclaredMethod("set"+Capitalizer.capitalizeFirst(attribut.getName()),parameterTypes);
+                toUse.invoke(built,lsParams);
+                return;
+            }
+            if(attribut.getType().getSimpleName().equals("int")){
+                Object[] lsParams=new Object[1];
+                lsParams[0]=Integer.valueOf(value).intValue();
+                Method toUse=type.getDeclaredMethod("set"+Capitalizer.capitalizeFirst(attribut.getName()),parameterTypes);
+                toUse.invoke(built,lsParams);
+                return;
+            }
+            if(attribut.getType().getSimpleName().equals("double")){
+                Object[] lsParams=new Object[1];
+                lsParams[0]=Double.valueOf(value).doubleValue();
+                Method toUse=type.getDeclaredMethod("set"+Capitalizer.capitalizeFirst(attribut.getName()),parameterTypes);
+                toUse.invoke(built,lsParams);
+                return;
+            }
+        }
+        catch(IllegalArgumentException e){
+            throw new IllegalArgumentException("une valeur que vous avez envoyez,n'a pas le bon type ou format");
+        }
+        
+    }
+    public static void setter(Field attribut,String value,Object built)throws Exception{
+
+        if(attribut.getType().getSimpleName().equals("String")){
+            attribut.set(built,value);
+            return;
+        }
+        try{
+             attribut.setInt(built,Integer.valueOf(value).intValue());
+             return;
+        }
+        catch(Exception e)
+        {
+            attribut.setDouble(built,Double.valueOf(value).doubleValue());
+             return;
+        }
+    }
+
+
+      public static Map<String,Vector<String>> triParObject(Map<String, String> inputs)throws Exception{
+        Map<String,Vector<String>> ansTries=new HashMap();
+        Vector<String> tabKeys=ControllerUtil.getKeys(inputs);
+        for(int i=0;i<tabKeys.size();i++){
+            String tempKey=((tabKeys.elementAt(i)).split(":"))[0];
+            Vector<String> tempValues=new Vector<String>();
+            if(!ansTries.containsKey(tempKey)){
+                try
+                {
+                    tempValues.add((tabKeys.elementAt(i).split(":"))[1]); 
+                    for(int j=i+1;j<tabKeys.size();j++){
+                        if(tabKeys.elementAt(j).split(":")[0].equals(tempKey)){
+                            tempValues.add((tabKeys.elementAt(j).split(":"))[1]);
+                        } 
+                    }
+                }
+                catch(Exception e){
+                    tempValues.add("simple");    
+                }
+                ansTries.put(tempKey,tempValues);
+            }
+        }
+        return ansTries;
+    }
+
+    public static Vector<String> getKeys(Map<String, String> inputs)throws Exception{
+        Set<String> keys = inputs.keySet();
         Vector<String> tabKeys=new Vector<String>();
         for (String key : keys){
             tabKeys.add(key);
         }
         return tabKeys;
     }
-    public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> parameters)throws Exception{
+    public static Method getMethodToUse(String cheminRessource,Method[] lsMethod)throws Exception{
+            for(int i=0;i<lsMethod.length;i++){
+                if(lsMethod[i].isAnnotationPresent(Get.class)){
+                    Get annotation=lsMethod[i].getAnnotation(Get.class);
+                    if(annotation.valeur().equals(cheminRessource)){
+                        return lsMethod[i];        
+                    }
+                }
+            }
+            return null;
+    }
+    public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs)throws Exception{
             
            for(int i=0;i<urlDispo.size();i++){
                 if(urlDispo.get(cheminRessource)!=null){
                     Mapping real=urlDispo.get(cheminRessource);
                     Class classToUse=Class.forName(real.getClassName());
-                    Class[] params=new Class[parameters.size()];
-                    Vector<String> tabKeys=getKeys(parameters);
-                    for (int k=0;k<tabKeys.size();k++){
-                       params[k]=parameters.get(tabKeys.elementAt(k)).getClass();
-                    }
-                    Object[] methodAttributs=new Object[parameters.size()];	
-                    Method methodToUse=classToUse.getDeclaredMethod(real.getMethodName(),params);
+                    Method[] lsMethod=classToUse.getMethods();
+                    Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,lsMethod);
                     Parameter[] methodParams=methodToUse.getParameters();
-                    int count=0;
-                    for(int k=0;k<methodParams.length;k++){
-                        if(methodParams[k].isAnnotationPresent(Match.class)){
-                            Match annotation=methodParams[k].getAnnotation(Match.class);
-                            methodAttributs[count]=parameters.get(annotation.param());
-                            count++;
-                        }
-                        else if(parameters.containsKey(methodParams[k].getName())){
-                                methodAttributs[count]=parameters.get(methodParams[k].getName());
-                                count++;
-                        }
+                    Object[] methodAttributs=ControllerUtil.getObjectToUseAsParameter(methodToUse,inputs);
+                    for(int d=0;d<methodAttributs.length;d++){
+                        System.out.println(methodAttributs[d].toString());
                     }
                     Object temp=classToUse.getDeclaredConstructor(new Class[0]).newInstance(new Object[0]);
                     Object ans= methodToUse.invoke(temp,methodAttributs);
