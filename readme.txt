@@ -12,4 +12,17 @@
     .Pour envoyer des donnees vers un controller il faut:
         -Soit faire correspondre les inputs avec le nom des parametres de la fonction (les classes doivent etre compiler avec l'option parameters)
         -Soit utiliser l'annnotation Match pour specifier l input qui lui correspond
+    .pour envoyer un objet il faut :faire comme l exemple suivant:
+        dans votre formulaire
+            input name="emp::nom";
+            input name="emp::age";
+        
+        dans votre projet
+            la definition de la fonction function(Match(param="emp")Emp emp);
+            la definition de la fonction function(Emp emp); si le nom correpond directement
+        attention §§§ les setters doivent etre initialises pour que l objet soit construit
+        vous pouvez utiliser les l annotation FieldMatcher soit utiliser la convention de nomage pour faire matcher les inputs avec les attributs
+    
+
+
     
