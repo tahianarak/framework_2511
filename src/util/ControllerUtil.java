@@ -8,6 +8,8 @@ import mg.ituprom16.annotation.*;
 import mg.ituprom16.affloader.*;
 import mg.ituprom16.exception.*;
 import jakarta.servlet.*;
+import jakarta.servlet.http.*;
+import mg.ituprom16.session.*;
 import java.text.SimpleDateFormat;
 
 public class ControllerUtil{
@@ -24,7 +26,7 @@ public class ControllerUtil{
         }
     }
 
-    public static Object[] getObjectToUseAsParameter(Method method,Map<String,String> inputs)throws Exception{
+    public static Object[] getObjectToUseAsParameter(Method method,Map<String,String> inputs,HttpSession session)throws Exception{
         Parameter[] methodParams=method.getParameters();
         Map<String,Vector<String>> inputsPerObjects=ControllerUtil.triParObject(inputs);
         Object[] objectToUseAsParameter=new Object[methodParams.length];
@@ -37,6 +39,7 @@ public class ControllerUtil{
                     objectToUseAsParameter[count]=ControllerUtil.buildObjectFromForAnnoted(methodParams[k],listeAttributsClasse,inputs);
                     count++;
                 }
+                
                 else{
                     String value=inputs.get(methodParams[k].getAnnotation(Match.class).param());
                     if(methodParams[k].getType().getSimpleName().equals("int"))
@@ -54,39 +57,20 @@ public class ControllerUtil{
                     else if(methodParams[k].getType().getSimpleName().equals("Date"))
                     {
                         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                        
                         objectToUseAsParameter[count]=dateFormat.parse(value);
                     }
                     count++;
                     
                 }
             }
-            else if(inputsPerObjects.containsKey(methodParams[k].getName()))
+            else if(!methodParams[k].isAnnotationPresent(Match.class))
             {
-                if(inputsPerObjects.get(methodParams[k].getName()).elementAt(0).equals("simple")==false){
-                    Vector<String> listeAttributsClasse=inputsPerObjects.get(methodParams[k].getName());
-                    objectToUseAsParameter[count]=buildObjectByName(methodParams[k],methodParams[k].getName(),listeAttributsClasse,inputs);
-                    count++;
+                if(methodParams[k].getType().getSimpleName().equals("MySession")){
+                    objectToUseAsParameter[count]=new MySession(session);
                 }
                 else{
-                    String value=inputs.get(methodParams[k].getName());
-                    if(methodParams[k].getType().getSimpleName().equals("int"))
-                    {
-                        objectToUseAsParameter[count]=Integer.valueOf(value).intValue();
-                    }
-                    else if(methodParams[k].getType().getSimpleName().equals("double"))
-                    {
-                        objectToUseAsParameter[count]=Double.valueOf(value).doubleValue();
-                    }
-                    else if(methodParams[k].getType().getSimpleName().equals("String"))
-                    {
-                        objectToUseAsParameter[count]=value;
-                    }
-                    else if(methodParams[k].getType().getSimpleName().equals("Date"))
-                    {
-                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                        objectToUseAsParameter[count]=dateFormat.parse(value);
-                    }
-                    count++;
+                     throw new InvalidTypeException("ETU002511:"+"annotation non presente pour le parametre n"+k+" de la fonction ");
                 }
             }
         }
@@ -270,7 +254,7 @@ public class ControllerUtil{
             }
             return null;
     }
-    public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs)throws Exception{
+    public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs,HttpSession session)throws Exception{
             
            for(int i=0;i<urlDispo.size();i++){
                 if(urlDispo.get(cheminRessource)!=null){
@@ -279,7 +263,7 @@ public class ControllerUtil{
                     Method[] lsMethod=classToUse.getMethods();
                     Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,lsMethod);
                     Parameter[] methodParams=methodToUse.getParameters();
-                    Object[] methodAttributs=ControllerUtil.getObjectToUseAsParameter(methodToUse,inputs);
+                    Object[] methodAttributs=ControllerUtil.getObjectToUseAsParameter(methodToUse,inputs,session);
                     for(int d=0;d<methodAttributs.length;d++){
                         System.out.println(methodAttributs[d].toString());
                     }
