@@ -22,7 +22,7 @@
             la definition de la fonction function(Emp emp); si le nom correpond directement
         attention §§§ les setters doivent etre initialises pour que l objet soit construit
         vous pouvez utiliser les l annotation FieldMatcher soit utiliser la convention de nomage pour faire matcher les inputs avec les attributs
-    
+    .pour utiliser la session il faut mettre en parametre de la fonction controller un object de type MySession
 
 
     
