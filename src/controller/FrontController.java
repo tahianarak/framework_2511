@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import mg.ituprom16.affloader.*;
 import mg.ituprom16.exception.*;
+import com.google.gson.*;
 
 
 
@@ -87,6 +88,13 @@ public class FrontController extends HttpServlet
                     request.setAttribute(key,data.get(key));
                 }	
                 dispat.forward(request,response);
+            }
+            else{
+                ServletOutputStream out = response.getOutputStream();
+                response.setContentType("application/json");
+                Gson gson=new Gson();
+                out.write((gson.toJson(ans)).getBytes());
+                out.close(); 
             }
         }
         catch(Exception e){
