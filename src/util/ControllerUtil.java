@@ -11,6 +11,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import mg.ituprom16.session.*;
 import java.text.SimpleDateFormat;
+import com.google.gson.*;
 
 public class ControllerUtil{
 
@@ -254,6 +255,16 @@ public class ControllerUtil{
             }
             return null;
     }
+
+    public static void setSessionAttribute(Object toUse,HttpSession session)throws Exception{
+        Field[] lsfield=toUse.getClass().getDeclaredFields();
+        for(int i=0;i<lsfield.length;i++){
+            if(lsfield[i].getClass().getSimpleName().equals("MySession")){
+                lsfield[i].set(toUse,new MySession(session));
+                break;
+            }
+        }
+    }
     public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs,HttpSession session)throws Exception{
             
            for(int i=0;i<urlDispo.size();i++){
@@ -268,11 +279,23 @@ public class ControllerUtil{
                         System.out.println(methodAttributs[d].toString());
                     }
                     Object temp=classToUse.getDeclaredConstructor(new Class[0]).newInstance(new Object[0]);
+                    ControllerUtil.setSessionAttribute(temp,session);
                     Object ans= methodToUse.invoke(temp,methodAttributs);
-                   
-                    if(ControllerUtil.verifyType(ans)==1){
+                    temp=null;
+
+
+                    if(classToUse.isAnnotationPresent(RestApi.class))
+                    {
+                        if(ans instanceof ModelView)
+                        {
+                            ans=((ModelView)(ans)).getData();
+                        }
+                    }
+                    else if(ControllerUtil.verifyType(ans)==1){
                             throw new InvalidTypeException("<h1>Type de retour de la fonction associé à l'url non valide </h1>");
                     }
+
+                   
                     return ans;
                 }
                 else{

@@ -8,6 +8,11 @@ public class MySession{
     public MySession(HttpSession session){
         this.session=session;
     }
+
+    public void destroy(){
+        session.invalidate();
+    }
+
     public Object get(String key)
     {
         return session.getAttribute(key);

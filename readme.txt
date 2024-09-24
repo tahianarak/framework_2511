@@ -23,6 +23,7 @@
         attention §§§ les setters doivent etre initialises pour que l objet soit construit
         vous pouvez utiliser les l annotation FieldMatcher soit utiliser la convention de nomage pour faire matcher les inputs avec les attributs
     .pour utiliser la session il faut mettre en parametre de la fonction controller un object de type MySession
+    .pour faire un RestApi annoter le controller par RestApi
 
 
     
