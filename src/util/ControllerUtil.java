@@ -244,11 +244,11 @@ public class ControllerUtil{
         }
         return tabKeys;
     }
-    public static Method getMethodToUse(String cheminRessource,Method[] lsMethod)throws Exception{
+    public static Method getMethodToUse(String cheminRessource,String verb,Method[] lsMethod)throws Exception{
             for(int i=0;i<lsMethod.length;i++){
-                if(lsMethod[i].isAnnotationPresent(Get.class)){
-                    Get annotation=lsMethod[i].getAnnotation(Get.class);
-                    if(annotation.valeur().equals(cheminRessource)){
+                if(lsMethod[i].isAnnotationPresent(URL.class)){
+                    URL annotation=lsMethod[i].getAnnotation(URL.class);
+                    if(annotation.valeur().equals(cheminRessource) && ControllerUtil.getVerb(lsMethod[i]).equals(verb)){
                         return lsMethod[i];        
                     }
                 }
@@ -265,14 +265,29 @@ public class ControllerUtil{
             }
         }
     }
-    public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs,HttpSession session)throws Exception{
-            
+    public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs,HttpSession session,HttpServletRequest request)throws Exception
+    {        
            for(int i=0;i<urlDispo.size();i++){
                 if(urlDispo.get(cheminRessource)!=null){
-                    Mapping real=urlDispo.get(cheminRessource);
-                    Class classToUse=Class.forName(real.getClassName());
+                    Mapping truereal=urlDispo.get(cheminRessource);
+                    
+                    LocationMapping real=null;
+                    HashSet<LocationMapping> liste=truereal.getLsLocationMapping();
+                    for(LocationMapping temp : liste)
+                    {
+                       if(request.getMethod().equals(temp.getVerb())){
+                            real=temp;    
+                            break;
+                       } 
+                    }
+
+                    if(real==null){
+                         throw new PageNotFoundException("erreur 500->bad request,this method is not supported for this url");
+                    }
+                   
+                    Class classToUse=Class.forName(truereal.getClassName());
                     Method[] lsMethod=classToUse.getMethods();
-                    Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,lsMethod);
+                    Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,request.getMethod(),lsMethod);
                     Parameter[] methodParams=methodToUse.getParameters();
                     Object[] methodAttributs=ControllerUtil.getObjectToUseAsParameter(methodToUse,inputs,session);
                     for(int d=0;d<methodAttributs.length;d++){
@@ -284,7 +299,7 @@ public class ControllerUtil{
                     temp=null;
 
 
-                    if(classToUse.isAnnotationPresent(RestApi.class))
+                    if(methodToUse.isAnnotationPresent(RestApi.class))
                     {
                         if(ans instanceof ModelView)
                         {
@@ -305,27 +320,53 @@ public class ControllerUtil{
             return null;
     }
     public static  Map<String, Mapping> getUrlDispo(String classpath,String packageSource)throws Exception
-    {
+    {   
         Vector<Class> lsController=ControllerUtil.getControllers(classpath,packageSource);
         Map<String, Mapping> urlDispo = new HashMap<>();
         for(int i=0;i<lsController.size();i++){
             Method[] metTemp=lsController.elementAt(i).getDeclaredMethods();
             for(int j=0;j<metTemp.length;j++){
-                if(metTemp[j].isAnnotationPresent(Get.class)){
-                    Get annotation = metTemp[j].getAnnotation(Get.class);
-                    if(urlDispo.containsKey(annotation.valeur())){
-                        throw new DuplicatedUrlException("plusieurs url de meme valeur pour: "+annotation.valeur());
-                    }
-                    else
+                if(metTemp[j].isAnnotationPresent(URL.class))
+                {
+                    URL annotation = metTemp[j].getAnnotation(URL.class);  
+                    if(!urlDispo.containsKey(annotation.valeur()))
                     {
-                        urlDispo.put(annotation.valeur(),new Mapping(lsController.elementAt(i).getName(),metTemp[j].getName()));
+                        Mapping urlAssociateMethod=new Mapping(lsController.elementAt(i).getName());
+                        urlAssociateMethod.addLocationMapping(metTemp[j].getName(),ControllerUtil.getVerb(metTemp[j]));
+                        for(int k=j+1; k<metTemp.length; k++)
+                        {
+                            if(metTemp[k].isAnnotationPresent(URL.class) && metTemp[k].getAnnotation(URL.class).valeur().equals(annotation.valeur()))
+                            {   
+                                if(ControllerUtil.getVerb(metTemp[k]).equals(ControllerUtil.getVerb(metTemp[j])))
+                                {
+                                   throw new Exception("Erreur !vous ne pouvez pas avoir deux memes url avec des verbes pareils");
+                                }
+                               /* if(metTemp[k].getName().equals(metTemp[j].getName()))
+                                {
+                                   throw new Exception("Erreur !vous ne pouvez pas avoir deux fonctions de meme nom et de meme url");
+                                }*/
+                                 urlAssociateMethod.addLocationMapping(metTemp[k].getName(),ControllerUtil.getVerb(metTemp[k]));
+                                
+                            }   
+                        }
+                        urlDispo.put(annotation.valeur(),urlAssociateMethod);
                     }
-                    
                 }
             }
+           
         }
         return urlDispo;
     } 
+    public static String getVerb(Method method){
+            if(method.isAnnotationPresent(Get.class)){
+                return "GET"; 
+            }
+            else if(method.isAnnotationPresent(Post.class))
+            { 
+                return "POST";
+            }
+            return "GET"   ; 
+    }
     public static Vector<Class> getControllers(String classpath,String packageSource)throws Exception
     {
         File classpathDirectory = new File(classpath);

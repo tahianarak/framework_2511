@@ -1,38 +1,31 @@
 package mg.ituprom16.mapping;
 
+import java.util.*;
+
 public class Mapping {
 
     private String className;
-    private String methodName;
+    HashSet<LocationMapping> lsLocationMapping;
 
-    // Constructeur par défaut
-    public Mapping() {
-        this("", "");
+
+
+
+    public Mapping(String className){
+        this.className=className;
+        this.lsLocationMapping=new HashSet<LocationMapping>();
+    }
+    public void addLocationMapping(String methodName,String verb){
+        lsLocationMapping.add(new LocationMapping(methodName,verb));
     }
 
-    // Constructeur avec paramètres
-    public Mapping(String className, String methodName) {
-        this.className = className;
-        this.methodName = methodName;
+    public String getClassName(){
+        return this.className;
     }
-
-    // Getter pour className
-    public String getClassName() {
-        return className;
+    public HashSet<LocationMapping> getLsLocationMapping(){
+        return this.lsLocationMapping;
     }
-
-    // Setter pour className
-    public void setClassName(String className) {
-        this.className = className;
-    }
-
-    // Getter pour methodName
-    public String getMethodName() {
-        return methodName;
-    }
-
-    // Setter pour methodName
-    public void setMethodName(String methodName) {
-        this.methodName = methodName;
+    public Mapping(String className,HashSet<LocationMapping> lsLocationMapping){
+            this.className=className;
+            this.lsLocationMapping=lsLocationMapping;
     }
 }

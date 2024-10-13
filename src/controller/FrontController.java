@@ -72,7 +72,7 @@ public class FrontController extends HttpServlet
             for (String key : cles){
                 params.put(key,paramsbrut.get(key)[0]);
             }
-            Object ans=ControllerUtil.invokeMethod(urlDispo,cheminRessource,params,request.getSession());
+            Object ans=ControllerUtil.invokeMethod(urlDispo,cheminRessource,params,request.getSession(),request);
             if(ans instanceof String) {
                 ServletOutputStream out = response.getOutputStream();
                 out.write(((String)ans).getBytes());
