@@ -17,7 +17,6 @@ public class ModelView
         this.urlDestination = urlDestination;
         this.data=new HashMap<>();
     }
-    
     public String getUrlDestination() {
         return urlDestination;
     }
