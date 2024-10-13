@@ -25,6 +25,6 @@
     .pour utiliser la session il faut mettre en parametre de la fonction controller un object de type MySession
     .pour faire un RestApi annoter la methode par RestApi
     .annoter par url avec valeur puis ajouter le verb voulu
-
+    .une exception  500 sort lorrqu il y a un bad request ou un 400 s il y a une page non trouvee
 
     
