@@ -12,6 +12,7 @@ import jakarta.servlet.http.*;
 import mg.ituprom16.session.*;
 import java.text.SimpleDateFormat;
 import com.google.gson.*;
+import jakarta.servlet.http.Part;
 
 public class ControllerUtil{
 
@@ -27,48 +28,58 @@ public class ControllerUtil{
         }
     }
 
-    public static Object[] getObjectToUseAsParameter(Method method,Map<String,String> inputs,HttpSession session)throws Exception{
+    public static Object[] getObjectToUseAsParameter(Method method,Map<String,String> inputs,HttpSession session,HttpServletRequest request)throws Exception{
         Parameter[] methodParams=method.getParameters();
         Map<String,Vector<String>> inputsPerObjects=ControllerUtil.triParObject(inputs);
         Object[] objectToUseAsParameter=new Object[methodParams.length];
         int count=0;
         for(int k=0;k<methodParams.length;k++){
-            if(methodParams[k].isAnnotationPresent(Match.class)){
+            if(methodParams[k].isAnnotationPresent(Match.class))
+            {
                  Match annotation=methodParams[k].getAnnotation(Match.class);
-                if(inputsPerObjects.get(annotation.param()).elementAt(0).equals("simple")==false){
-                    Vector<String> listeAttributsClasse=inputsPerObjects.get(annotation.param());
-                    objectToUseAsParameter[count]=ControllerUtil.buildObjectFromForAnnoted(methodParams[k],listeAttributsClasse,inputs);
+                if(inputs.size()!=0)
+                {
+                    if(inputsPerObjects.get(annotation.param()).elementAt(0).equals("simple")==false)
+                    {
+                        Vector<String> listeAttributsClasse=inputsPerObjects.get(annotation.param());
+                        objectToUseAsParameter[count]=ControllerUtil.buildObjectFromForAnnoted(methodParams[k],listeAttributsClasse,inputs);
+                        count++;
+                    }
+                    else
+                    {
+                        String value=inputs.get(methodParams[k].getAnnotation(Match.class).param());
+                        if(methodParams[k].getType().getSimpleName().equals("int"))
+                        {
+                            objectToUseAsParameter[count]=Integer.valueOf(value).intValue();
+                        }
+                        else if(methodParams[k].getType().getSimpleName().equals("double"))
+                        {
+                            objectToUseAsParameter[count]=Double.valueOf(value).doubleValue();
+                        }
+                        else if(methodParams[k].getType().getSimpleName().equals("String"))
+                        {
+                            objectToUseAsParameter[count]=value;
+                        }
+                        else if(methodParams[k].getType().getSimpleName().equals("Date"))
+                        {
+                            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                            
+                            objectToUseAsParameter[count]=dateFormat.parse(value);
+                        }
                     count++;
+                    }
                 }
-                
-                else{
-                    String value=inputs.get(methodParams[k].getAnnotation(Match.class).param());
-                    if(methodParams[k].getType().getSimpleName().equals("int"))
-                    {
-                        objectToUseAsParameter[count]=Integer.valueOf(value).intValue();
-                    }
-                    else if(methodParams[k].getType().getSimpleName().equals("double"))
-                    {
-                        objectToUseAsParameter[count]=Double.valueOf(value).doubleValue();
-                    }
-                    else if(methodParams[k].getType().getSimpleName().equals("String"))
-                    {
-                        objectToUseAsParameter[count]=value;
-                    }
-                    else if(methodParams[k].getType().getSimpleName().equals("Date"))
-                    {
-                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                        
-                        objectToUseAsParameter[count]=dateFormat.parse(value);
-                    }
+                else if(methodParams[k].getType().getSimpleName().equals("Part"))
+                {
+                    objectToUseAsParameter[count]=request.getPart(methodParams[k].getAnnotation(Match.class).param());
                     count++;
-                    
-                }
+                }                    
             }
             else if(!methodParams[k].isAnnotationPresent(Match.class))
             {
                 if(methodParams[k].getType().getSimpleName().equals("MySession")){
                     objectToUseAsParameter[count]=new MySession(session);
+                    count++;
                 }
                 else{
                      throw new InvalidTypeException("ETU002511:"+"annotation non presente pour le parametre n"+k+" de la fonction ");
@@ -289,7 +300,7 @@ public class ControllerUtil{
                     Method[] lsMethod=classToUse.getMethods();
                     Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,request.getMethod(),lsMethod);
                     Parameter[] methodParams=methodToUse.getParameters();
-                    Object[] methodAttributs=ControllerUtil.getObjectToUseAsParameter(methodToUse,inputs,session);
+                    Object[] methodAttributs=ControllerUtil.getObjectToUseAsParameter(methodToUse,inputs,session,request);
                     for(int d=0;d<methodAttributs.length;d++){
                         System.out.println(methodAttributs[d].toString());
                     }

@@ -9,6 +9,7 @@ import java.io.*;
 import java.lang.reflect.*;
 import mg.ituprom16.annotation.*;
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.*;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,6 +19,7 @@ import com.google.gson.*;
 
 
 
+@MultipartConfig
 public class FrontController extends HttpServlet
 {   
     private String packageSource;
