@@ -41,9 +41,9 @@ public class ControllerUtil{
                 {
                     if(inputsPerObjects.get(annotation.param()).elementAt(0).equals("simple")==false)
                     {
-                        Vector<String> listeAttributsClasse=inputsPerObjects.get(annotation.param());
-                        objectToUseAsParameter[count]=ControllerUtil.buildObjectFromForAnnoted(methodParams[k],listeAttributsClasse,inputs);
-                        count++;
+                            Vector<String> listeAttributsClasse=inputsPerObjects.get(annotation.param());
+                            objectToUseAsParameter[count]=ControllerUtil.buildObjectFromForAnnoted(methodParams[k],listeAttributsClasse,inputs);
+                            count++;
                     }
                     else
                     {
@@ -165,9 +165,11 @@ public class ControllerUtil{
         }
         return lsAns;
     }
+  
     public static void setter(Class type,Field attribut,String value,Object built)throws Exception{
         Class[] parameterTypes=new Class[1];
         parameterTypes[0]=attribut.getType();
+        FieldVerifier.verify(attribut,value);
         try{
             if(attribut.getType().getSimpleName().equals("Date")){
                 Object[] lsParams=new Object[1];
