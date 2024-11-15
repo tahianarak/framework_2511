@@ -101,7 +101,7 @@ public class FrontController extends HttpServlet
         }
         catch(Exception e){
             ServletOutputStream out = response.getOutputStream();
-            if(e instanceof PageNotFoundException || e instanceof InvalidTypeException){
+            if(e instanceof PageNotFoundException || e instanceof InvalidTypeException || e instanceof TypeFormatException){
                 out.write((e.getMessage()).getBytes());
                 out.close();  
             }

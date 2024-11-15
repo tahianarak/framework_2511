@@ -27,4 +27,5 @@
     .annoter par url avec valeur puis ajouter le verb voulu
     .une exception  500 sort lorrqu il y a un bad request ou un 400 s il y a une page non trouvee
     .pour telecharger des fichiers mettre Part en   argument de la fonction
+    .pour faire des control de valeur,utilisez les annotations de filtre pour les attributs de class
     
