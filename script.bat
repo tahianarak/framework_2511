@@ -5,6 +5,6 @@ javac -d ../bin *.java
  
 cd ../bin 
 
-jar cvf myspring.jar com mg
-jar cvf "D:\tahiana\s4\web-naina\final_project\workspace 4\application\bin\myspring.jar" mg
-jar cvf ..\..\web\lib\myspring.jar mg
+jar cf myspring.jar com mg
+jar cf "D:\tahiana\s4\web-naina\final_project\workspace 4\application\bin\myspring.jar" mg com
+jar cf ..\..\web\lib\myspring.jar mg com

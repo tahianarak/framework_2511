@@ -12,9 +12,18 @@ import jakarta.servlet.http.*;
 import mg.ituprom16.session.*;
 import java.text.SimpleDateFormat;
 import com.google.gson.*;
-import jakarta.servlet.http.Part;
 
 public class ControllerUtil{
+
+    public static String restitute(String cheminRessource){
+        String str=cheminRessource.split("http://localhost:8080/")[1];
+        String[] temp=str.split("/");
+       String  ans="";
+        for(int i=1;i<temp.length;i++){
+            ans=ans+"/"+temp[i];
+        }
+        return ans;
+    }
 
     public static int verifyType(Object o){
         if(o instanceof ModelView){
@@ -92,19 +101,39 @@ public class ControllerUtil{
         Class type=param.getType();
         Constructor builder =type.getConstructor(new Class[0]);
         Object built=builder.newInstance(new Object[0]);
+        InputsFormatException inputsException=new InputsFormatException();
         for(int i=0;i<inputsPerObjects.size();i++){
             Field attribut=type.getDeclaredField(ControllerUtil.getFieldName(type,inputsPerObjects.elementAt(i)));
             if(attribut.isAccessible())
             {
-                String tempValue=inputs.get(paramName+":"+inputsPerObjects.elementAt(i));
-                ControllerUtil.setter(type,attribut,tempValue,built);
+                try{
+                    String tempValue=inputs.get(paramName+":"+inputsPerObjects.elementAt(i));
+                    ControllerUtil.setter(type,attribut,tempValue,built,paramName+":"+inputsPerObjects.elementAt(i));
+                }
+                catch(TypeFormatException e)
+                {
+                    inputsException.addException(e);
+                }
+                
             }
             else{
-                attribut.setAccessible(true);
-                String tempValue=inputs.get(paramName+":"+inputsPerObjects.elementAt(i));
-                ControllerUtil.setter(type,attribut,tempValue,built);
-                attribut.setAccessible(false);
+                try{
+                    attribut.setAccessible(true);
+                    String tempValue=inputs.get(paramName+":"+inputsPerObjects.elementAt(i));
+                    ControllerUtil.setter(type,attribut,tempValue,built,paramName+":"+inputsPerObjects.elementAt(i));
+                    attribut.setAccessible(false);
+                }
+                catch(TypeFormatException e)
+                {
+                    inputsException.addException(e);
+                }
+                
             } 
+          
+        }
+        if(inputsException.getLsException().size()!=0)
+        {
+            throw inputsException;
         }
         return built;
     }
@@ -140,19 +169,38 @@ public class ControllerUtil{
         Class type=param.getType();
         Constructor builder =type.getConstructor(new Class[0]);
         Object built=builder.newInstance(new Object[0]);
+        InputsFormatException inputsException=new InputsFormatException();
         for(int i=0;i<inputsPerObjects.size();i++){
             Field attribut=type.getDeclaredField(ControllerUtil.getFieldName(type,inputsPerObjects.elementAt(i)));
             if(attribut.isAccessible())
             {
-                String tempValue=inputs.get(param.getAnnotation(Match.class).param()+":"+inputsPerObjects.elementAt(i));
-                ControllerUtil.setter(type,attribut,tempValue,built);
+                try{
+                    String tempValue=inputs.get(param.getAnnotation(Match.class).param()+":"+inputsPerObjects.elementAt(i));
+                    ControllerUtil.setter(type,attribut,tempValue,built,param.getAnnotation(Match.class).param()+":"+inputsPerObjects.elementAt(i));
+                }
+                catch(TypeFormatException e)
+                {
+                    inputsException.addException(e);
+                }
+               
             }
             else{
-                attribut.setAccessible(true);
-                String tempValue=inputs.get(param.getAnnotation(Match.class).param()+":"+inputsPerObjects.elementAt(i));
-                ControllerUtil.setter(type,attribut,tempValue,built);
-                attribut.setAccessible(false);
+                try{
+                    attribut.setAccessible(true);
+                    String tempValue=inputs.get(param.getAnnotation(Match.class).param()+":"+inputsPerObjects.elementAt(i));
+                    ControllerUtil.setter(type,attribut,tempValue,built,param.getAnnotation(Match.class).param()+":"+inputsPerObjects.elementAt(i));
+                    attribut.setAccessible(false);
+                }
+                catch(TypeFormatException e)
+                {
+                    inputsException.addException(e);
+                }
+                
             } 
+        }
+        if(inputsException.getLsException().size()!=0)
+        {
+            throw inputsException;
         }
         return built;
     }
@@ -166,10 +214,10 @@ public class ControllerUtil{
         return lsAns;
     }
   
-    public static void setter(Class type,Field attribut,String value,Object built)throws Exception{
+    public static void setter(Class type,Field attribut,String value,Object built,String valueName)throws Exception{
         Class[] parameterTypes=new Class[1];
         parameterTypes[0]=attribut.getType();
-        FieldVerifier.verify(attribut,value);
+        FieldVerifier.verify(attribut,value,valueName);
         try{
             if(attribut.getType().getSimpleName().equals("Date")){
                 Object[] lsParams=new Object[1];
@@ -278,8 +326,9 @@ public class ControllerUtil{
             }
         }
     }
-    public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs,HttpSession session,HttpServletRequest request)throws Exception
-    {        
+
+    public static Object invokeMethodAfterException(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs,HttpSession session,String verb)throws Exception
+    {   
            for(int i=0;i<urlDispo.size();i++){
                 if(urlDispo.get(cheminRessource)!=null){
                     Mapping truereal=urlDispo.get(cheminRessource);
@@ -288,7 +337,8 @@ public class ControllerUtil{
                     HashSet<LocationMapping> liste=truereal.getLsLocationMapping();
                     for(LocationMapping temp : liste)
                     {
-                       if(request.getMethod().equals(temp.getVerb())){
+
+                       if(verb.equals(temp.getVerb())){
                             real=temp;    
                             break;
                        } 
@@ -300,17 +350,12 @@ public class ControllerUtil{
                    
                     Class classToUse=Class.forName(truereal.getClassName());
                     Method[] lsMethod=classToUse.getMethods();
-                    Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,request.getMethod(),lsMethod);
+                    Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,verb,lsMethod);
                     Parameter[] methodParams=methodToUse.getParameters();
-                    Object[] methodAttributs=ControllerUtil.getObjectToUseAsParameter(methodToUse,inputs,session,request);
-                    for(int d=0;d<methodAttributs.length;d++){
-                        System.out.println(methodAttributs[d].toString());
-                    }
                     Object temp=classToUse.getDeclaredConstructor(new Class[0]).newInstance(new Object[0]);
                     ControllerUtil.setSessionAttribute(temp,session);
-                    Object ans= methodToUse.invoke(temp,methodAttributs);
+                    Object ans= methodToUse.invoke(temp,new Object[0]);
                     temp=null;
-
 
                     if(methodToUse.isAnnotationPresent(RestApi.class))
                     {
@@ -331,6 +376,78 @@ public class ControllerUtil{
                 }
             }
             return null;
+        }       
+        
+    public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs,HttpSession session,HttpServletRequest request, HttpServletResponse response)throws Exception
+    {   
+        try
+        {
+           for(int i=0;i<urlDispo.size();i++){
+                if(urlDispo.get(cheminRessource)!=null){
+                    Mapping truereal=urlDispo.get(cheminRessource);
+                    
+                    LocationMapping real=null;
+                    HashSet<LocationMapping> liste=truereal.getLsLocationMapping();
+                    for(LocationMapping temp : liste)
+                    {
+
+                       if(request.getMethod().equals(temp.getVerb())){
+                            real=temp;    
+                            break;
+                       } 
+                    }
+
+                    if(real==null){
+                         throw new PageNotFoundException("erreur 500->bad request,this method is not supported for this url");
+                    }
+                    
+                    Class classToUse=Class.forName(truereal.getClassName());
+                    Method[] lsMethod=classToUse.getMethods();
+                    Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,request.getMethod(),lsMethod);
+                    Parameter[] methodParams=methodToUse.getParameters();
+                    Object[] methodAttributs=ControllerUtil.getObjectToUseAsParameter(methodToUse,inputs,session,request);
+                    for(int d=0;d<methodAttributs.length;d++){
+                        System.out.println(methodAttributs[d].toString());
+                    }
+                    Object temp=classToUse.getDeclaredConstructor(new Class[0]).newInstance(new Object[0]);
+                    ControllerUtil.setSessionAttribute(temp,session);
+                    Object ans= methodToUse.invoke(temp,methodAttributs);
+                    temp=null;
+
+                    if(methodToUse.isAnnotationPresent(RestApi.class))
+                    {
+                        if(ans instanceof ModelView)
+                        {
+                            ans=((ModelView)(ans)).getData();
+                        }
+                    }
+                    else if(ControllerUtil.verifyType(ans)==1){
+                            throw new InvalidTypeException("<h1>Type de retour de la fonction associé à l'url non valide </h1>");
+                    }
+
+                   
+                    return ans;
+                }
+                else{
+                        throw new PageNotFoundException("<h1>Erreur 404 ,cet url n'est pas disponible</h1>");
+                }
+            }
+        }    
+        catch(InputsFormatException e)
+        {
+            String cheminressource2="";
+
+            String contextPath = request.getContextPath();
+            cheminressource2=restitute(request.getHeader("referer"));
+            ModelView mv=(ModelView)ControllerUtil.invokeMethodAfterException(urlDispo, cheminressource2, inputs,session,"GET");
+             mv.addObject(e.getLsException().get(0).getParamName()+"_errors",e.getLsException().get(0).getMessage()+"<script>window.history.pushState({}, \"\", \""+contextPath+cheminressource2+"\");console.log(\"voila\");</script>");
+            for(int i=1;i<e.getLsException().size();i++)
+            {
+                 mv.addObject(e.getLsException().get(i).getParamName()+"_errors",e.getLsException().get(i).getMessage());
+            }
+            return mv;
+        }    
+        return null;
     }
     public static  Map<String, Mapping> getUrlDispo(String classpath,String packageSource)throws Exception
     {   
