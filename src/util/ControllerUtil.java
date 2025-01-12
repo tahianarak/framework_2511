@@ -327,7 +327,7 @@ public class ControllerUtil{
         }
     }
 
-    public static Object invokeMethodAfterException(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs,HttpSession session,String verb)throws Exception
+    public static Object invokeMethodAfterException(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs,HttpSession session,ServletContext context,String verb)throws Exception
     {   
            for(int i=0;i<urlDispo.size();i++){
                 if(urlDispo.get(cheminRessource)!=null){
@@ -351,6 +351,7 @@ public class ControllerUtil{
                     Class classToUse=Class.forName(truereal.getClassName());
                     Method[] lsMethod=classToUse.getMethods();
                     Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,verb,lsMethod);
+                    AuthVerifier.verify(methodToUse,session,context);
                     Parameter[] methodParams=methodToUse.getParameters();
                     Object temp=classToUse.getDeclaredConstructor(new Class[0]).newInstance(new Object[0]);
                     ControllerUtil.setSessionAttribute(temp,session);
@@ -380,6 +381,7 @@ public class ControllerUtil{
         
     public static Object invokeMethod(Map<String, Mapping> urlDispo,String cheminRessource,Map<String, String> inputs,HttpSession session,HttpServletRequest request, HttpServletResponse response)throws Exception
     {   
+        Method globalMethod=null;
         try
         {
            for(int i=0;i<urlDispo.size();i++){
@@ -404,6 +406,8 @@ public class ControllerUtil{
                     Class classToUse=Class.forName(truereal.getClassName());
                     Method[] lsMethod=classToUse.getMethods();
                     Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,request.getMethod(),lsMethod);
+                    AuthVerifier.verify(methodToUse,session,request.getServletContext());
+                    globalMethod=methodToUse;
                     Parameter[] methodParams=methodToUse.getParameters();
                     Object[] methodAttributs=ControllerUtil.getObjectToUseAsParameter(methodToUse,inputs,session,request);
                     for(int d=0;d<methodAttributs.length;d++){
@@ -438,8 +442,15 @@ public class ControllerUtil{
             String cheminressource2="";
 
             String contextPath = request.getContextPath();
-            cheminressource2=restitute(request.getHeader("referer"));
-            ModelView mv=(ModelView)ControllerUtil.invokeMethodAfterException(urlDispo, cheminressource2, inputs,session,"GET");
+            if(globalMethod.isAnnotationPresent(URLAfterException.class))
+            {
+                cheminressource2=globalMethod.getAnnotation(URLAfterException.class).valeur();
+            }
+            else
+            {
+                cheminressource2=restitute(request.getHeader("referer"));
+            }
+            ModelView mv=(ModelView)ControllerUtil.invokeMethodAfterException(urlDispo, cheminressource2, inputs,session,request.getServletContext(),"GET");
              mv.addObject(e.getLsException().get(0).getParamName()+"_errors",e.getLsException().get(0).getMessage()+"<script>window.history.pushState({}, \"\", \""+contextPath+cheminressource2+"\");console.log(\"voila\");</script>");
             for(int i=1;i<e.getLsException().size();i++)
             {
