@@ -29,6 +29,7 @@
     .pour telecharger des fichiers mettre Part en   argument de la fonction
     .pour faire des control de valeur,utilisez les annotations de filtre pour les attributs de class
     .pour recuperer les erreurs avec validation dynamique ,il faut juste appeler dans la page jsp request.getAttribute("inputname_errors")
-
+    .pour faire marcher l'authentification dynamique sur le controller il faut annoter par les annnotationd'authentification le controller
+    .ecrire le ficher web-xml pour la configuration de cle pour le fichier de configuration d authentification et le non de la session qu il faut utiliser 
 
     

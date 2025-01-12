@@ -28,7 +28,18 @@ public class FrontController extends HttpServlet
     public  void init() throws ServletException {
         try{
             this.packageSource = this.getInitParameter("package-source");
-             getMapping();
+             ServletContext context=getServletContext();
+            String path = context.getResource(this.getInitParameter("authentification")).getPath();
+            String sessionStatusName = this.getInitParameter("sessionStatus");
+            String sessionRoleName = this.getInitParameter("sessionRole");
+            context.setAttribute("sessionStatusName",sessionStatusName);
+            context.setAttribute("sessionRoleName",sessionRoleName);
+            path = path.replace("%20", " ");
+            path = path.substring(1);
+            String hierarchie=FileUtil.readFromFile(path);
+            HashMap<String,Integer> hash=AuthVerifier.mapRoles(hierarchie);
+            context.setAttribute("roles",hash);
+            getMapping();
         }
         catch(Exception e){
             e.printStackTrace();
@@ -101,7 +112,7 @@ public class FrontController extends HttpServlet
         }
         catch(Exception e){
             ServletOutputStream out = response.getOutputStream();
-            if(e instanceof PageNotFoundException || e instanceof InvalidTypeException || e instanceof TypeFormatException){
+            if(e instanceof PageNotFoundException || e instanceof InvalidTypeException || e instanceof TypeFormatException || e instanceof AuthentificationMethodException){
                 out.write((e.getMessage()).getBytes());
                 out.close();  
             }
