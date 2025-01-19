@@ -25,11 +25,7 @@
     .pour utiliser la session il faut mettre en parametre de la fonction controller un object de type MySession
     .pour faire un RestApi annoter la methode par RestApi
     .annoter par url avec valeur puis ajouter le verb voulu
-    .une exception  500 sort lorrqu il y a un bad request ou un 400 s il y a une page non trouvee
-    .pour telecharger des fichiers mettre Part en   argument de la fonction
-    .pour faire des control de valeur,utilisez les annotations de filtre pour les attributs de class
-    .pour recuperer les erreurs avec validation dynamique ,il faut juste appeler dans la page jsp request.getAttribute("inputname_errors")
-    .pour faire marcher l'authentification dynamique sur le controller il faut annoter par les annnotationd'authentification le controller
-    .ecrire le ficher web-xml pour la configuration de cle pour le fichier de configuration d authentification et le non de la session qu il faut utiliser 
+    .idem pour les classes
+
 
     
