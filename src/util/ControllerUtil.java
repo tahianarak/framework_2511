@@ -349,6 +349,7 @@ public class ControllerUtil{
                     }
                    
                     Class classToUse=Class.forName(truereal.getClassName());
+                    AuthVerifier.verify(classToUse,session,context);
                     Method[] lsMethod=classToUse.getMethods();
                     Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,verb,lsMethod);
                     AuthVerifier.verify(methodToUse,session,context);
@@ -404,6 +405,7 @@ public class ControllerUtil{
                     }
                     
                     Class classToUse=Class.forName(truereal.getClassName());
+                    AuthVerifier.verify(classToUse,session,request.getServletContext());
                     Method[] lsMethod=classToUse.getMethods();
                     Method methodToUse=ControllerUtil.getMethodToUse(cheminRessource,request.getMethod(),lsMethod);
                     AuthVerifier.verify(methodToUse,session,request.getServletContext());

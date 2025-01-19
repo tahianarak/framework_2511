@@ -29,6 +29,49 @@ public class AuthVerifier
         
         return roles;
     }
+     public static void verify(Class classToUse,HttpSession session,ServletContext context)throws Exception
+    {
+        HashMap<String,Integer> roles=(HashMap<String,Integer>)context.getAttribute("roles");
+       // System.out.println(roles.toString());
+        String sessionRoleName=(String)context.getAttribute("sessionRoleName");
+        String sessionStatusName=(String)context.getAttribute("sessionStatusName");
+        if(classToUse.isAnnotationPresent(Authentified.class))
+        {
+            if(session.getAttribute(sessionStatusName)==null)
+            {
+                throw new AuthentificationMethodException("vous n'etes pas connectes");
+            }
+            if((String)session.getAttribute(sessionRoleName)!=null)
+            {
+                String sessionAuth=(String)session.getAttribute(sessionRoleName);
+
+
+                if(sessionAuth.equals("Authentified")==false && roles.get(sessionAuth)<((Authentified)classToUse.getAnnotation(Authentified.class)).level()){
+                    throw new AuthentificationMethodException("vous n'avez pas accès a cette methode");
+                }
+            }
+        }
+        else if(classToUse.isAnnotationPresent(Free.class))
+        {
+
+        }
+        else if(classToUse.isAnnotationPresent(ConfiguredAuth.class))
+        {
+            if(session.getAttribute(sessionStatusName)==null)
+            {
+                throw new AuthentificationMethodException("vous n'etes pas connectes");
+            }
+            String sessionAuth=(String)session.getAttribute(sessionRoleName);
+            String annotationValue=((ConfiguredAuth)classToUse.getAnnotation(ConfiguredAuth.class)).value();
+            int functionLevel=roles.get(sessionAuth);
+            int annotationLevel=roles.get(annotationValue);    
+            System.out.println("class difference:"+functionLevel+" "+annotationLevel);
+
+            if(sessionAuth==null || functionLevel<annotationLevel){
+                throw new AuthentificationMethodException("vous n'avez pas accès a cette methdode");
+            }
+        }
+    }
     public static void verify(Method function,HttpSession session,ServletContext context)throws Exception
     {
         HashMap<String,Integer> roles=(HashMap<String,Integer>)context.getAttribute("roles");
